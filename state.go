@@ -58,6 +58,7 @@ type LazyDfaState struct {
 func NewLazyDfaState(id StateId, encoding codec.Handle, hashFunc hash.Hash32) *LazyDfaState {
 	return &LazyDfaState{
 		Id:       id,
+		Edges:    make(map[interface{}]State),
 		Encoding: encoding,
 		HashFunc: hashFunc,
 		Type:     LAZYDFA,
