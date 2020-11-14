@@ -14,7 +14,8 @@ const (
 )
 
 var (
-	ErrEdgeAlreadyUsed   = errors.New("Edge already in use in deterministic state machine")
+	ErrEdgeAlreadyUsed = errors.New("Edge already in use in deterministic " +
+		"state machine")
 	ErrEdgeNotPresent    = errors.New("Edge does not exist")
 	ErrAnnotationInvalid = errors.New("Invalid annotation")
 	ErrNotImplemented    = errors.New("Not Implemented")
@@ -65,7 +66,8 @@ type LazyDfaStatefulState struct {
 	Type                    StateType
 }
 
-func NewLazyDfaStatefulState(id StateId, encoding codec.Handle, hashFunc hash.Hash32) *LazyDfaStatefulState {
+func NewLazyDfaStatefulState(id StateId, encoding codec.Handle,
+	hashFunc hash.Hash32) *LazyDfaStatefulState {
 	return &LazyDfaStatefulState{
 		Id:          id,
 		Edges:       make(map[interface{}]State),
@@ -109,13 +111,14 @@ func (s *LazyDfaStatefulState) RemoveAnnotation(annotation interface{}) error {
 
 func (s *LazyDfaStatefulState) GetAnnotations() ([]interface{}, error) {
 	annotationList := make([]interface{}, 0, len(s.Annotations))
-	for annotation, _ := range s.Annotations {
+	for annotation := range s.Annotations {
 		annotationList = append(annotationList, annotation)
 	}
 	return annotationList, nil
 }
 
-func (s *LazyDfaStatefulState) AddEdge(edgeTransition interface{}, destination State) error {
+func (s *LazyDfaStatefulState) AddEdge(edgeTransition interface{},
+	destination State) error {
 	if _, present := s.Edges[edgeTransition]; present {
 		return ErrEdgeAlreadyUsed
 	}
@@ -123,7 +126,8 @@ func (s *LazyDfaStatefulState) AddEdge(edgeTransition interface{}, destination S
 	return nil
 }
 
-func (s *LazyDfaStatefulState) RemoveEdge(edgeTransition interface{}, destination State) error {
+func (s *LazyDfaStatefulState) RemoveEdge(edgeTransition interface{},
+	destination State) error {
 	if edgeTo, present := s.Edges[edgeTransition]; !present {
 		return ErrEdgeNotPresent
 	} else if edgeTo != destination {
@@ -148,7 +152,7 @@ func (s *LazyDfaStatefulState) FollowAllEdges() []State {
 	}
 
 	destinationStates := make([]State, 0, len(uniqueDestinations))
-	for destination, _ := range uniqueDestinations {
+	for destination := range uniqueDestinations {
 		destinationStates = append(destinationStates, destination)
 	}
 	return destinationStates
@@ -169,7 +173,10 @@ func (s *LazyDfaStatefulState) IsomorphismHash() (uint32, error) {
 		return 0, err
 	}
 	s.HashFunc.Reset()
-	s.HashFunc.Write(encodedBytes)
+	_, err := s.HashFunc.Write(encodedBytes)
+	if err != nil {
+		return 0, err
+	}
 	return s.HashFunc.Sum32(), nil
 }
 
