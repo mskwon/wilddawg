@@ -343,6 +343,85 @@ func TestLazyDfaAnnotatedStateIsomorphismHash(t *testing.T) {
 	}
 }
 
+func TestLazyDfaAnnotatedStateClone(t *testing.T) {
+	sharedCodecHandle := new(codec.BincHandle)
+	sharedCodecHandle.Canonical = true
+	sharedHashFunc := fnv.New32()
+
+	var testStateA State = NewLazyDfaAnnotatedState(1, sharedCodecHandle,
+		sharedHashFunc)
+	var testStateB State = testStateA.Clone()
+
+	if testStateA.GetId() != testStateB.GetId() {
+		t.Errorf("Clone results in different IDs: %d, %d", testStateA.GetId(),
+			testStateB.GetId())
+	}
+	if err := testStateB.SetId(2); err != nil {
+		t.Errorf("Error while trying to set Id: %q", err)
+	}
+	if testStateA.GetId() == testStateB.GetId() {
+		t.Errorf("Id modification affects two states: %d, %d",
+			testStateA.GetId(), testStateB.GetId())
+	}
+
+	if testStateA.IsTerminal() != testStateB.IsTerminal() {
+		t.Errorf("Clone results in different terminal states")
+	}
+	if err := testStateB.SetTerminal(true); err != nil {
+		t.Errorf("Error while trying to set terminal state: %q", err)
+	}
+	if testStateA.IsTerminal() == testStateB.IsTerminal() {
+		t.Errorf("Terminal prop modification affects two states")
+	}
+
+	if err := testStateA.AddAnnotation(1); err != nil {
+		t.Errorf("Error while adding annotation: %q", err)
+	}
+	if err := testStateA.AddEdge("a", testStateB); err != nil {
+		t.Errorf("Error while adding edge: %q", err)
+	}
+	var testStateC State = testStateA.Clone()
+
+	if a_ann, err := testStateA.GetAnnotations(); err != nil {
+		t.Errorf("Error while getting annotations: %q", err)
+	} else if c_ann, err := testStateC.GetAnnotations(); err != nil {
+		t.Errorf("Error while getting annotations: %q", err)
+	} else if !slicesSameValues(a_ann, c_ann) {
+		t.Errorf("Expected same annotations from clone: %v, %v", a_ann, c_ann)
+	}
+
+	if err := testStateC.AddAnnotation(2); err != nil {
+		t.Errorf("Error while adding annotation: %q", err)
+	}
+	if a_ann, err := testStateA.GetAnnotations(); err != nil {
+		t.Errorf("Error while getting annotations: %q", err)
+	} else if c_ann, err := testStateC.GetAnnotations(); err != nil {
+		t.Errorf("Error while getting annotations: %q", err)
+	} else if slicesSameValues(a_ann, c_ann) {
+		t.Errorf("Expected different annotations from clone: %v, %v", a_ann,
+			c_ann)
+	}
+
+	if a_hash, err := testStateA.IsomorphismHash(); err != nil {
+		t.Errorf("Error while getting IsomorphismHash: %q", err)
+	} else if c_hash, err := testStateC.IsomorphismHash(); err != nil {
+		t.Errorf("Error while getting IsomorphismHash: %q", err)
+	} else if a_hash != c_hash {
+		t.Errorf("Expected same IsomorphismHashes: %d, %d", a_hash, c_hash)
+	}
+
+	if err := testStateC.AddEdge("self", testStateC); err != nil {
+		t.Errorf("Error while adding edge: %q", err)
+	}
+	if a_hash, err := testStateA.IsomorphismHash(); err != nil {
+		t.Errorf("Error while getting IsomorphismHash: %q", err)
+	} else if c_hash, err := testStateC.IsomorphismHash(); err != nil {
+		t.Errorf("Error while getting IsomorphismHash: %q", err)
+	} else if a_hash == c_hash {
+		t.Errorf("Expected different IsomorphismHashes: %d, %d", a_hash, c_hash)
+	}
+}
+
 func TestLazyDfaAnnotatedStateType(t *testing.T) {
 	var testStateA State = NewLazyDfaAnnotatedState(1, nil, nil)
 
