@@ -10,12 +10,14 @@ import (
 type StateType int
 
 const (
-	LAZYDFA StateType = iota
+	LAZYDFASTATEFUL StateType = iota
 )
 
 var (
-	ErrEdgeAlreadyUsed = errors.New("Edge already in use in deterministic state machine")
-	ErrEdgeNotPresent  = errors.New("Edge does not exist")
+	ErrEdgeAlreadyUsed   = errors.New("Edge already in use in deterministic state machine")
+	ErrEdgeNotPresent    = errors.New("Edge does not exist")
+	ErrAnnotationInvalid = errors.New("Invalid annotation")
+	ErrNotImplemented    = errors.New("Not Implemented")
 )
 
 /*
@@ -34,6 +36,9 @@ type State interface {
 	SetId(StateId) error
 	IsTerminal() bool
 	SetTerminal(bool) error
+	AddAnnotation(interface{}) error
+	RemoveAnnotation(interface{}) error
+	GetAnnotations() ([]interface{}, error)
 	AddEdge(interface{}, State) error
 	RemoveEdge(interface{}, State) error
 	FollowEdge(interface{}) []State
@@ -45,45 +50,72 @@ type State interface {
 }
 
 // This implementation lazily provides machine edge information. It is
-// a state for a deterministic finite automaton.
-type LazyDfaState struct {
-	Id       StateId
-	Terminal bool
-	Edges    map[interface{}]State
-	Encoding codec.Handle
-	HashFunc hash.Hash32
-	Type     StateType
+// a state for a deterministic finite automaton that also holds state
+// information.
+type LazyDfaStatefulState struct {
+	Id                      StateId
+	Terminal                bool
+	Edges                   map[interface{}]State
+	Encoding                codec.Handle
+	HashFunc                hash.Hash32
+	Annotations             map[interface{}]bool
+	AddAnnotationHandler    func(interface{}) error
+	RemoveAnnotationHandler func(interface{}) error
+	GetAnnotationsHandler   func() interface{}
+	Type                    StateType
 }
 
-func NewLazyDfaState(id StateId, encoding codec.Handle, hashFunc hash.Hash32) *LazyDfaState {
-	return &LazyDfaState{
-		Id:       id,
-		Edges:    make(map[interface{}]State),
-		Encoding: encoding,
-		HashFunc: hashFunc,
-		Type:     LAZYDFA,
+func NewLazyDfaState(id StateId, encoding codec.Handle, hashFunc hash.Hash32) *LazyDfaStatefulState {
+	return &LazyDfaStatefulState{
+		Id:          id,
+		Edges:       make(map[interface{}]State),
+		Encoding:    encoding,
+		HashFunc:    hashFunc,
+		Type:        LAZYDFASTATEFUL,
+		Annotations: make(map[interface{}]bool),
 	}
 }
 
-func (s *LazyDfaState) GetId() StateId {
+func (s *LazyDfaStatefulState) GetId() StateId {
 	return s.Id
 }
 
-func (s *LazyDfaState) SetId(id StateId) error {
+func (s *LazyDfaStatefulState) SetId(id StateId) error {
 	s.Id = id
 	return nil
 }
 
-func (s *LazyDfaState) IsTerminal() bool {
+func (s *LazyDfaStatefulState) IsTerminal() bool {
 	return s.Terminal
 }
 
-func (s *LazyDfaState) SetTerminal(terminal bool) error {
+func (s *LazyDfaStatefulState) SetTerminal(terminal bool) error {
 	s.Terminal = terminal
 	return nil
 }
 
-func (s *LazyDfaState) AddEdge(edgeTransition interface{}, destination State) error {
+func (s *LazyDfaStatefulState) AddAnnotation(annotation interface{}) error {
+	s.Annotations[annotation] = true
+	return nil
+}
+
+func (s *LazyDfaStatefulState) RemoveAnnotation(annotation interface{}) error {
+	if _, present := s.Annotations[annotation]; !present {
+		return ErrAnnotationInvalid
+	}
+	delete(s.Annotations, annotation)
+	return nil
+}
+
+func (s *LazyDfaStatefulState) GetAnnotations() ([]interface{}, error) {
+	annotationList := make([]interface{}, 0, len(s.Annotations))
+	for annotation, _ := range s.Annotations {
+		annotationList = append(annotationList, annotation)
+	}
+	return annotationList, nil
+}
+
+func (s *LazyDfaStatefulState) AddEdge(edgeTransition interface{}, destination State) error {
 	if _, present := s.Edges[edgeTransition]; present {
 		return ErrEdgeAlreadyUsed
 	}
@@ -91,7 +123,7 @@ func (s *LazyDfaState) AddEdge(edgeTransition interface{}, destination State) er
 	return nil
 }
 
-func (s *LazyDfaState) RemoveEdge(edgeTransition interface{}, destination State) error {
+func (s *LazyDfaStatefulState) RemoveEdge(edgeTransition interface{}, destination State) error {
 	if edgeTo, present := s.Edges[edgeTransition]; !present {
 		return ErrEdgeNotPresent
 	} else if edgeTo != destination {
@@ -101,7 +133,7 @@ func (s *LazyDfaState) RemoveEdge(edgeTransition interface{}, destination State)
 	return nil
 }
 
-func (s *LazyDfaState) FollowEdge(edgeTransition interface{}) []State {
+func (s *LazyDfaStatefulState) FollowEdge(edgeTransition interface{}) []State {
 	destinationStates := make([]State, 0)
 	if destination, present := s.Edges[edgeTransition]; present {
 		destinationStates = append(destinationStates, destination)
@@ -109,7 +141,7 @@ func (s *LazyDfaState) FollowEdge(edgeTransition interface{}) []State {
 	return destinationStates
 }
 
-func (s *LazyDfaState) FollowAllEdges() []State {
+func (s *LazyDfaStatefulState) FollowAllEdges() []State {
 	uniqueDestinations := make(map[State]bool)
 	for _, destination := range s.Edges {
 		uniqueDestinations[destination] = true
@@ -122,7 +154,7 @@ func (s *LazyDfaState) FollowAllEdges() []State {
 	return destinationStates
 }
 
-func (s *LazyDfaState) MachineEdges() map[interface{}]StateId {
+func (s *LazyDfaStatefulState) MachineEdges() map[interface{}]StateId {
 	machineEdges := make(map[interface{}]StateId)
 	for edge, dest := range s.Edges {
 		machineEdges[edge] = dest.GetId()
@@ -130,7 +162,7 @@ func (s *LazyDfaState) MachineEdges() map[interface{}]StateId {
 	return machineEdges
 }
 
-func (s *LazyDfaState) IsomorphismHash() (uint32, error) {
+func (s *LazyDfaStatefulState) IsomorphismHash() (uint32, error) {
 	encodedBytes := make([]byte, 0, 64)
 	encoder := codec.NewEncoderBytes(&encodedBytes, s.Encoding)
 	if err := encoder.Encode(s.MachineEdges()); err != nil {
@@ -141,8 +173,8 @@ func (s *LazyDfaState) IsomorphismHash() (uint32, error) {
 	return s.HashFunc.Sum32(), nil
 }
 
-func (s *LazyDfaState) Clone() State {
-	clone := &LazyDfaState{
+func (s *LazyDfaStatefulState) Clone() State {
+	clone := &LazyDfaStatefulState{
 		Id:       s.Id,
 		Terminal: s.Terminal,
 		Edges:    make(map[interface{}]State),
@@ -156,6 +188,6 @@ func (s *LazyDfaState) Clone() State {
 	return clone
 }
 
-func (s *LazyDfaState) GetStateType() StateType {
+func (s *LazyDfaStatefulState) GetStateType() StateType {
 	return s.Type
 }
