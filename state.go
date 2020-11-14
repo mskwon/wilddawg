@@ -189,16 +189,12 @@ func (s *LazyDfaStatefulState) IsomorphismHash() (uint32, error) {
 }
 
 func (s *LazyDfaStatefulState) Clone() State {
-	clone := &LazyDfaStatefulState{
-		Id:       s.Id,
-		Terminal: s.Terminal,
-		Edges:    make(map[interface{}]State),
-		Encoding: s.Encoding,
-		HashFunc: s.HashFunc,
-		Type:     s.Type,
-	}
+	clone := NewLazyDfaStatefulState(s.Id, s.Encoding, s.HashFunc)
 	for edge, destination := range s.Edges {
 		clone.Edges[edge] = destination
+	}
+	for annotation, placeholder := range s.Annotations {
+		clone.Annotations[annotation] = placeholder
 	}
 	return clone
 }
