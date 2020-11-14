@@ -1,9 +1,10 @@
 package wilddawg
 
 import (
-	//"hash"
+	"hash/fnv"
 	"testing"
-	//"github.com/ugorji/go/codec"
+
+	"github.com/ugorji/go/codec"
 )
 
 func TestLazyDfaStatefulStateId(t *testing.T) {
@@ -258,6 +259,77 @@ func TestLazyDfaStatefulStateMachineEdges(t *testing.T) {
 	}
 	if edges := testStateA.MachineEdges(); !sameMachineEdges(edges, expected) {
 		t.Errorf("Expected %v, got %v", expected, edges)
+	}
+}
+
+func TestLazyDfaStatefulStateIsomorphismHash(t *testing.T) {
+	hashFunc := func(data map[interface{}]StateId) uint32 {
+		codecHandle := new(codec.BincHandle)
+		codecHandle.Canonical = true
+		encodedBytes := make([]byte, 0, 64)
+		encoder := codec.NewEncoderBytes(&encodedBytes, codecHandle)
+		if err := encoder.Encode(data); err != nil {
+			t.Errorf("Error while running validation encoding func: %q", err)
+		}
+		fnv := fnv.New32()
+		if _, err := fnv.Write(encodedBytes); err != nil {
+			t.Errorf("Error while running validation hash func: %q", err)
+		}
+		return fnv.Sum32()
+	}
+	expected := make(map[interface{}]StateId)
+
+	sharedCodecHandle := new(codec.BincHandle)
+	sharedCodecHandle.Canonical = true
+	sharedHashFunc := fnv.New32()
+
+	var testStateA State = NewLazyDfaStatefulState(1, sharedCodecHandle,
+		sharedHashFunc)
+	if hash, err := testStateA.IsomorphismHash(); err != nil {
+		t.Errorf("Error while obtaining IsomorphismHash: %q", err)
+	} else if expectedHash := hashFunc(expected); hash != expectedHash {
+		t.Errorf("Expected hash %d, got %d", expectedHash, hash)
+	}
+
+	var testStateB State = NewLazyDfaStatefulState(2, sharedCodecHandle,
+		sharedHashFunc)
+	expected["a"] = 2
+	if err := testStateA.AddEdge("a", testStateB); err != nil {
+		t.Errorf("Error while adding edge: %q", err)
+	}
+	if hash, err := testStateA.IsomorphismHash(); err != nil {
+		t.Errorf("Error while obtaining IsomorphismHash: %q", err)
+	} else if expectedHash := hashFunc(expected); hash != expectedHash {
+		t.Errorf("Expected hash %d, got %d", expectedHash, hash)
+	}
+
+	expected["b"] = 2
+	if err := testStateA.AddEdge("b", testStateB); err != nil {
+		t.Errorf("Error while adding edge: %q", err)
+	}
+	if hash, err := testStateA.IsomorphismHash(); err != nil {
+		t.Errorf("Error while obtaining IsomorphismHash: %q", err)
+	} else if expectedHash := hashFunc(expected); hash != expectedHash {
+		t.Errorf("Expected hash %d, got %d", expectedHash, hash)
+	}
+
+	expected["c"] = 1
+	if err := testStateA.AddEdge("c", testStateA); err != nil {
+		t.Errorf("Error while adding edge: %q", err)
+	}
+	if hash, err := testStateA.IsomorphismHash(); err != nil {
+		t.Errorf("Error while obtaining IsomorphismHash: %q", err)
+	} else if expectedHash := hashFunc(expected); hash != expectedHash {
+		t.Errorf("Expected hash %d, got %d", expectedHash, hash)
+	}
+
+	delete(expected, "a")
+	delete(expected, "b")
+	delete(expected, "c")
+	if hash, err := testStateB.IsomorphismHash(); err != nil {
+		t.Errorf("Error while obtaining IsomorphismHash: %q", err)
+	} else if expectedHash := hashFunc(expected); hash != expectedHash {
+		t.Errorf("Expected hash %d, got %d", expectedHash, hash)
 	}
 }
 
