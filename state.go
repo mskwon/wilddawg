@@ -10,7 +10,7 @@ import (
 type StateType int
 
 const (
-	LAZYDFASTATEFUL StateType = iota
+	LAZYDFAANNOTATED StateType = iota
 )
 
 var (
@@ -53,9 +53,9 @@ type State interface {
 }
 
 // This implementation lazily provides machine edge information. It is
-// a state for a deterministic finite automaton that also holds state
+// a state for a deterministic finite automaton that also holds annotation
 // information.
-type LazyDfaStatefulState struct {
+type LazyDfaAnnotatedState struct {
 	Id                      StateId
 	Terminal                bool
 	Edges                   map[interface{}]State
@@ -68,42 +68,42 @@ type LazyDfaStatefulState struct {
 	Type                    StateType
 }
 
-func NewLazyDfaStatefulState(id StateId, encoding codec.Handle,
-	hashFunc hash.Hash32) *LazyDfaStatefulState {
-	return &LazyDfaStatefulState{
+func NewLazyDfaAnnotatedState(id StateId, encoding codec.Handle,
+	hashFunc hash.Hash32) *LazyDfaAnnotatedState {
+	return &LazyDfaAnnotatedState{
 		Id:          id,
 		Edges:       make(map[interface{}]State),
 		Encoding:    encoding,
 		HashFunc:    hashFunc,
-		Type:        LAZYDFASTATEFUL,
+		Type:        LAZYDFAANNOTATED,
 		Annotations: make(map[interface{}]bool),
 	}
 }
 
-func (s *LazyDfaStatefulState) GetId() StateId {
+func (s *LazyDfaAnnotatedState) GetId() StateId {
 	return s.Id
 }
 
-func (s *LazyDfaStatefulState) SetId(id StateId) error {
+func (s *LazyDfaAnnotatedState) SetId(id StateId) error {
 	s.Id = id
 	return nil
 }
 
-func (s *LazyDfaStatefulState) IsTerminal() bool {
+func (s *LazyDfaAnnotatedState) IsTerminal() bool {
 	return s.Terminal
 }
 
-func (s *LazyDfaStatefulState) SetTerminal(terminal bool) error {
+func (s *LazyDfaAnnotatedState) SetTerminal(terminal bool) error {
 	s.Terminal = terminal
 	return nil
 }
 
-func (s *LazyDfaStatefulState) AddAnnotation(annotation interface{}) error {
+func (s *LazyDfaAnnotatedState) AddAnnotation(annotation interface{}) error {
 	s.Annotations[annotation] = true
 	return nil
 }
 
-func (s *LazyDfaStatefulState) RemoveAnnotation(annotation interface{}) error {
+func (s *LazyDfaAnnotatedState) RemoveAnnotation(annotation interface{}) error {
 	if _, present := s.Annotations[annotation]; !present {
 		return ErrAnnotationInvalid
 	}
@@ -111,7 +111,7 @@ func (s *LazyDfaStatefulState) RemoveAnnotation(annotation interface{}) error {
 	return nil
 }
 
-func (s *LazyDfaStatefulState) GetAnnotations() ([]interface{}, error) {
+func (s *LazyDfaAnnotatedState) GetAnnotations() ([]interface{}, error) {
 	annotationList := make([]interface{}, 0, len(s.Annotations))
 	for annotation := range s.Annotations {
 		annotationList = append(annotationList, annotation)
@@ -119,7 +119,7 @@ func (s *LazyDfaStatefulState) GetAnnotations() ([]interface{}, error) {
 	return annotationList, nil
 }
 
-func (s *LazyDfaStatefulState) AddEdge(edgeTransition interface{},
+func (s *LazyDfaAnnotatedState) AddEdge(edgeTransition interface{},
 	destination State) error {
 	if _, present := s.Edges[edgeTransition]; present {
 		return ErrEdgeAlreadyUsed
@@ -128,7 +128,7 @@ func (s *LazyDfaStatefulState) AddEdge(edgeTransition interface{},
 	return nil
 }
 
-func (s *LazyDfaStatefulState) RemoveEdge(edgeTransition interface{},
+func (s *LazyDfaAnnotatedState) RemoveEdge(edgeTransition interface{},
 	destination State) error {
 	if edgeTo, present := s.Edges[edgeTransition]; !present {
 		return ErrEdgeNotPresent
@@ -139,7 +139,7 @@ func (s *LazyDfaStatefulState) RemoveEdge(edgeTransition interface{},
 	return nil
 }
 
-func (s *LazyDfaStatefulState) FollowEdge(edgeTransition interface{}) []State {
+func (s *LazyDfaAnnotatedState) FollowEdge(edgeTransition interface{}) []State {
 	destinationStates := make([]State, 0)
 	if destination, present := s.Edges[edgeTransition]; present {
 		destinationStates = append(destinationStates, destination)
@@ -147,7 +147,7 @@ func (s *LazyDfaStatefulState) FollowEdge(edgeTransition interface{}) []State {
 	return destinationStates
 }
 
-func (s *LazyDfaStatefulState) FollowAllEdges() []State {
+func (s *LazyDfaAnnotatedState) FollowAllEdges() []State {
 	uniqueDestinations := make(map[State]bool)
 	for _, destination := range s.Edges {
 		uniqueDestinations[destination] = true
@@ -160,7 +160,7 @@ func (s *LazyDfaStatefulState) FollowAllEdges() []State {
 	return destinationStates
 }
 
-func (s *LazyDfaStatefulState) MachineEdges() map[interface{}]StateId {
+func (s *LazyDfaAnnotatedState) MachineEdges() map[interface{}]StateId {
 	machineEdges := make(map[interface{}]StateId)
 	for edge, dest := range s.Edges {
 		machineEdges[edge] = dest.GetId()
@@ -168,7 +168,7 @@ func (s *LazyDfaStatefulState) MachineEdges() map[interface{}]StateId {
 	return machineEdges
 }
 
-func (s *LazyDfaStatefulState) IsomorphismHash() (uint32, error) {
+func (s *LazyDfaAnnotatedState) IsomorphismHash() (uint32, error) {
 	if s.Encoding == nil {
 		return 0, ErrNilEncoder
 	}
@@ -188,8 +188,8 @@ func (s *LazyDfaStatefulState) IsomorphismHash() (uint32, error) {
 	return s.HashFunc.Sum32(), nil
 }
 
-func (s *LazyDfaStatefulState) Clone() State {
-	clone := NewLazyDfaStatefulState(s.Id, s.Encoding, s.HashFunc)
+func (s *LazyDfaAnnotatedState) Clone() State {
+	clone := NewLazyDfaAnnotatedState(s.Id, s.Encoding, s.HashFunc)
 	for edge, destination := range s.Edges {
 		clone.Edges[edge] = destination
 	}
@@ -199,6 +199,6 @@ func (s *LazyDfaStatefulState) Clone() State {
 	return clone
 }
 
-func (s *LazyDfaStatefulState) GetStateType() StateType {
+func (s *LazyDfaAnnotatedState) GetStateType() StateType {
 	return s.Type
 }
