@@ -201,3 +201,70 @@ func TestLazyDfaStatefulStateEdge(t *testing.T) {
 		t.Errorf("Destination state count %d (%v), want 1", len(dest), dest)
 	}
 }
+
+func sameMachineEdges(a map[interface{}]StateId,
+	b map[interface{}]StateId) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k, a_val := range a {
+		if b_val, present := b[k]; !present {
+			return false
+		} else if a_val != b_val {
+			return false
+		}
+	}
+	return true
+}
+
+func TestLazyDfaStatefulStateMachineEdges(t *testing.T) {
+	var testStateA State = NewLazyDfaStatefulState(1, nil, nil)
+
+	if edges := testStateA.MachineEdges(); len(edges) != 0 {
+		t.Errorf("Expected 0 machine edges, got %d", len(edges))
+	}
+
+	expected := make(map[interface{}]StateId)
+	var testStateB State = NewLazyDfaStatefulState(2, nil, nil)
+
+	expected["a"] = 2
+	if err := testStateA.AddEdge("a", testStateB); err != nil {
+		t.Errorf("Error while adding edge: %q", err)
+	}
+	if edges := testStateA.MachineEdges(); !sameMachineEdges(edges, expected) {
+		t.Errorf("Expected %v, got %v", expected, edges)
+	}
+
+	expected["b"] = 2
+	if err := testStateA.AddEdge("b", testStateB); err != nil {
+		t.Errorf("Error while adding edge: %q", err)
+	}
+	if edges := testStateA.MachineEdges(); !sameMachineEdges(edges, expected) {
+		t.Errorf("Expected %v, got %v", expected, edges)
+	}
+
+	var testStateC State = NewLazyDfaStatefulState(3, nil, nil)
+	expected["c"] = 3
+	if err := testStateA.AddEdge("c", testStateC); err != nil {
+		t.Errorf("Error while adding edge: %q", err)
+	}
+	if edges := testStateA.MachineEdges(); !sameMachineEdges(edges, expected) {
+		t.Errorf("Expected %v, got %v", expected, edges)
+	}
+
+	delete(expected, "b")
+	if err := testStateA.RemoveEdge("b", testStateB); err != nil {
+		t.Errorf("Error while removing edge: %q", err)
+	}
+	if edges := testStateA.MachineEdges(); !sameMachineEdges(edges, expected) {
+		t.Errorf("Expected %v, got %v", expected, edges)
+	}
+}
+
+func TestLazyDfaStatefulStateType(t *testing.T) {
+	var testStateA State = NewLazyDfaStatefulState(1, nil, nil)
+
+	if stateType := testStateA.GetStateType(); stateType != LAZYDFASTATEFUL {
+		t.Errorf("Expected StateType %d, got %d", LAZYDFASTATEFUL, stateType)
+	}
+}
