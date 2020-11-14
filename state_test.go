@@ -127,3 +127,77 @@ func TestLazyDfaStatefulStateAnnotationsString(t *testing.T) {
 			ErrAnnotationInvalid, err)
 	}
 }
+
+func TestLazyDfaStatefulStateEdge(t *testing.T) {
+	var testStateA State = NewLazyDfaStatefulState(1, nil, nil)
+	var testStateB State = NewLazyDfaStatefulState(2, nil, nil)
+
+	if err := testStateA.AddEdge("a", testStateB); err != nil {
+		t.Errorf("Error while adding edge: %q", err)
+	}
+	if err := testStateA.AddEdge("b", testStateB); err != nil {
+		t.Errorf("Error while adding edge: %q", err)
+	}
+
+	if dest := testStateA.FollowEdge("a"); len(dest) != 1 {
+		t.Errorf("Destination state count %d, want 1", len(dest))
+	}
+	if dest := testStateA.FollowEdge("a"); dest[0] != testStateB {
+		t.Errorf("Result state %v, wanted %v", dest[0], testStateB)
+	}
+	if dest := testStateA.FollowEdge("x"); len(dest) != 0 {
+		t.Errorf("Destination state count %d, want 0", len(dest))
+	}
+	if dest := testStateA.FollowAllEdges(); len(dest) != 1 {
+		t.Errorf("Destination state count %d (%v), want 1", len(dest), dest)
+	}
+
+	var testStateC State = NewLazyDfaStatefulState(3, nil, nil)
+	if err := testStateA.AddEdge("a", testStateC); err != ErrEdgeAlreadyUsed {
+		t.Errorf("Expected %q, got %q", ErrEdgeAlreadyUsed, err)
+	}
+	if err := testStateA.AddEdge("c", testStateC); err != nil {
+		t.Errorf("Error while adding edge: %q", err)
+	}
+
+	if dest := testStateA.FollowEdge("a"); len(dest) != 1 {
+		t.Errorf("Destination state count %d, want 1", len(dest))
+	}
+	if dest := testStateA.FollowEdge("a"); dest[0] != testStateB {
+		t.Errorf("Result state %v, wanted %v", dest[0], testStateB)
+	}
+	if dest := testStateA.FollowEdge("c"); len(dest) != 1 {
+		t.Errorf("Destination state count %d, want 1", len(dest))
+	}
+	if dest := testStateA.FollowEdge("c"); dest[0] != testStateC {
+		t.Errorf("Result state %v, wanted %v", dest[0], testStateC)
+	}
+
+	if dest := testStateA.FollowAllEdges(); len(dest) != 2 {
+		t.Errorf("Destination state count %d (%v), want 2", len(dest), dest)
+	}
+
+	if err := testStateA.RemoveEdge("d", nil); err != ErrEdgeNotPresent {
+		t.Errorf("Expected %q, got %q", ErrEdgeNotPresent, err)
+	}
+	if err := testStateA.RemoveEdge("a", testStateC); err != ErrEdgeNotPresent {
+		t.Errorf("Expected %q, got %q", ErrEdgeNotPresent, err)
+	}
+	if err := testStateA.RemoveEdge("a", testStateB); err != nil {
+		t.Errorf("Error while removing edge: %q", err)
+	}
+
+	if dest := testStateA.FollowEdge("a"); len(dest) != 0 {
+		t.Errorf("Destination state count %d, want 0", len(dest))
+	}
+	if dest := testStateA.FollowAllEdges(); len(dest) != 2 {
+		t.Errorf("Destination state count %d (%v), want 2", len(dest), dest)
+	}
+
+	if err := testStateA.RemoveEdge("b", testStateB); err != nil {
+		t.Errorf("Error while removing edge: %q", err)
+	}
+	if dest := testStateA.FollowAllEdges(); len(dest) != 1 {
+		t.Errorf("Destination state count %d (%v), want 1", len(dest), dest)
+	}
+}
