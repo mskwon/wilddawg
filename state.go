@@ -56,16 +56,13 @@ type State interface {
 // a state for a deterministic finite automaton that also holds annotation
 // information.
 type LazyDfaAnnotatedState struct {
-	Id                      StateId
-	Terminal                bool
-	Edges                   map[interface{}]State
-	Encoding                codec.Handle
-	HashFunc                hash.Hash32
-	Annotations             map[interface{}]bool
-	AddAnnotationHandler    func(interface{}) error
-	RemoveAnnotationHandler func(interface{}) error
-	GetAnnotationsHandler   func() interface{}
-	Type                    StateType
+	Id          StateId
+	Terminal    bool
+	Edges       map[interface{}]State
+	Encoding    codec.Handle
+	HashFunc    hash.Hash32
+	Annotations map[interface{}]bool
+	Type        StateType
 }
 
 func NewLazyDfaAnnotatedState(id StateId, encoding codec.Handle,
