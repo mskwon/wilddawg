@@ -65,7 +65,7 @@ type LazyDfaStatefulState struct {
 	Type                    StateType
 }
 
-func NewLazyDfaState(id StateId, encoding codec.Handle, hashFunc hash.Hash32) *LazyDfaStatefulState {
+func NewLazyDfaStatefulState(id StateId, encoding codec.Handle, hashFunc hash.Hash32) *LazyDfaStatefulState {
 	return &LazyDfaStatefulState{
 		Id:          id,
 		Edges:       make(map[interface{}]State),
