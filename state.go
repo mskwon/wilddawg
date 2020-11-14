@@ -47,7 +47,7 @@ type State interface {
 	FollowEdge(interface{}) []State
 	FollowAllEdges() []State
 	MachineEdges() map[interface{}]StateId
-	IsomorphismHash() (uint32, error)
+	IsomorphismHash() (interface{}, error)
 	Clone() State
 	GetStateType() StateType
 }
@@ -165,7 +165,7 @@ func (s *LazyDfaAnnotatedState) MachineEdges() map[interface{}]StateId {
 	return machineEdges
 }
 
-func (s *LazyDfaAnnotatedState) IsomorphismHash() (uint32, error) {
+func (s *LazyDfaAnnotatedState) IsomorphismHash() (interface{}, error) {
 	if s.Encoding == nil {
 		return 0, ErrNilEncoder
 	}
