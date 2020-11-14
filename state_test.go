@@ -331,6 +331,16 @@ func TestLazyDfaStatefulStateIsomorphismHash(t *testing.T) {
 	} else if expectedHash := hashFunc(expected); hash != expectedHash {
 		t.Errorf("Expected hash %d, got %d", expectedHash, hash)
 	}
+
+	var testStateC State = NewLazyDfaStatefulState(3, nil, nil)
+	if _, err := testStateC.IsomorphismHash(); err != ErrNilEncoder {
+		t.Errorf("Expected %q, got %q", ErrNilEncoder, err)
+	}
+
+	var testStateD State = NewLazyDfaStatefulState(4, sharedCodecHandle, nil)
+	if _, err := testStateD.IsomorphismHash(); err != ErrNilHashFunc {
+		t.Errorf("Expected %q, got %q", ErrNilHashFunc, err)
+	}
 }
 
 func TestLazyDfaStatefulStateType(t *testing.T) {

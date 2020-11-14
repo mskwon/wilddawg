@@ -19,6 +19,8 @@ var (
 	ErrEdgeNotPresent    = errors.New("Edge does not exist")
 	ErrAnnotationInvalid = errors.New("Invalid annotation")
 	ErrNotImplemented    = errors.New("Not Implemented")
+	ErrNilEncoder        = errors.New("State encoding is uninitialized")
+	ErrNilHashFunc       = errors.New("State hash function is uninitialized")
 )
 
 /*
@@ -167,6 +169,12 @@ func (s *LazyDfaStatefulState) MachineEdges() map[interface{}]StateId {
 }
 
 func (s *LazyDfaStatefulState) IsomorphismHash() (uint32, error) {
+	if s.Encoding == nil {
+		return 0, ErrNilEncoder
+	}
+	if s.HashFunc == nil {
+		return 0, ErrNilHashFunc
+	}
 	encodedBytes := make([]byte, 0, 64)
 	encoder := codec.NewEncoderBytes(&encodedBytes, s.Encoding)
 	if err := encoder.Encode(s.MachineEdges()); err != nil {
