@@ -7,6 +7,12 @@ import (
 	"github.com/ugorji/go/codec"
 )
 
+type StateFactoryType int
+
+const (
+	ENCODEHASH StateFactoryType = iota
+)
+
 var (
 	ErrInvalidStateType = errors.New("Invalid StateType")
 )
@@ -21,6 +27,7 @@ type StateFactory interface {
 	SetDefaultStateType(StateType) error
 	NewState() (State, error)
 	CloneState(State) (State, error)
+	GetStateFactoryType() StateFactoryType
 }
 
 // This implementation is a state factory that can initialize States that need
@@ -30,6 +37,7 @@ type EncodeHashStateFactory struct {
 	Encoding         codec.Handle
 	HashFunc         hash.Hash32
 	DefaultStateType StateType
+	Type             StateFactoryType
 }
 
 func NewEncodeHashStateFactory(encoding codec.Handle, hashFunc hash.Hash32,
@@ -46,6 +54,7 @@ func NewEncodeHashStateFactory(encoding codec.Handle, hashFunc hash.Hash32,
 		Encoding:         encoding,
 		HashFunc:         hashFunc,
 		DefaultStateType: defaultStateType,
+		Type:             ENCODEHASH,
 	}
 	return newFactory, nil
 }
@@ -96,4 +105,8 @@ func (f *EncodeHashStateFactory) CloneState(orig State) (State, error) {
 	f.IdCounter += 1
 
 	return clone, nil
+}
+
+func (f *EncodeHashStateFactory) GetStateFactoryType() StateFactoryType {
+	return f.Type
 }
