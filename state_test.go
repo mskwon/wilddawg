@@ -50,25 +50,6 @@ func TestLazyDfaAnnotatedStateTerminal(t *testing.T) {
 	}
 }
 
-func slicesSameValues(a []interface{}, b []interface{}) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	count := make(map[interface{}]int)
-	for _, el := range a {
-		count[el] += 1
-	}
-	for _, el := range b {
-		count[el] -= 1
-	}
-	for _, c := range count {
-		if c != 0 {
-			return false
-		}
-	}
-	return true
-}
-
 func TestLazyDfaAnnotatedStateAnnotationsString(t *testing.T) {
 	var testState State = NewLazyDfaAnnotatedState(55, nil, nil)
 
@@ -201,21 +182,6 @@ func TestLazyDfaAnnotatedStateEdge(t *testing.T) {
 	if dest := testStateA.FollowAllEdges(); len(dest) != 1 {
 		t.Errorf("Destination state count %d (%v), want 1", len(dest), dest)
 	}
-}
-
-func sameMachineEdges(a map[interface{}]StateId,
-	b map[interface{}]StateId) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for k, a_val := range a {
-		if b_val, present := b[k]; !present {
-			return false
-		} else if a_val != b_val {
-			return false
-		}
-	}
-	return true
 }
 
 func TestLazyDfaAnnotatedStateMachineEdges(t *testing.T) {
