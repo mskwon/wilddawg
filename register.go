@@ -14,6 +14,7 @@ var (
 	ErrRegisterNilState  = errors.New("Nil state passed to register")
 	ErrNonMinimalMachine = errors.New("Start state passed to register " +
 		"is part of a non-minimal state machine")
+	ErrStateDoesNotExist = errors.New("State does not exist")
 )
 
 /*
@@ -23,6 +24,7 @@ var (
 */
 type Register interface {
 	GetEquivalenceClass(State) (State, error)
+	RemoveClass(State) error
 	Initialize(State) error
 	Reset() error
 	GetRegisterType() RegisterType
@@ -63,6 +65,26 @@ func (r *CollisionSafeHashMapRegister) GetEquivalenceClass(queryState State) (
 		r.EquivalenceClassMap[hash] = append(r.EquivalenceClassMap[hash],
 			queryState)
 		return queryState, nil
+	}
+}
+
+func (r *CollisionSafeHashMapRegister) RemoveClass(targetState State) error {
+	if targetState == nil {
+		return ErrRegisterNilState
+	}
+	if hash, err := targetState.IsomorphismHash(); err != nil {
+		return err
+	} else if stateRef, present := r.EquivalenceClassMap[hash]; !present {
+		return ErrStateDoesNotExist
+	} else {
+		for i, state := range stateRef {
+			if state.GetId() == targetState.GetId() {
+				r.EquivalenceClassMap[hash] = append(stateRef[:i],
+					stateRef[i+1:]...)
+				return nil
+			}
+		}
+		return ErrStateDoesNotExist
 	}
 }
 
