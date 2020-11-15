@@ -23,33 +23,6 @@ func TestLazyDfaAnnotatedStateId(t *testing.T) {
 	}
 }
 
-func TestLazyDfaAnnotatedStateTerminal(t *testing.T) {
-	var testState State = NewLazyDfaAnnotatedState(55, nil, nil)
-
-	if terminal := testState.IsTerminal(); terminal {
-		t.Errorf("Terminal state: %t, want false after initialization",
-			terminal)
-	}
-
-	if err := testState.SetTerminal(true); err != nil {
-		t.Errorf("Error while trying to set terminal state to true: %q", err)
-	}
-
-	if terminal := testState.IsTerminal(); !terminal {
-		t.Errorf("Terminal state: %t after calling SetTerminal(true), "+
-			"want true", terminal)
-	}
-
-	if err := testState.SetTerminal(false); err != nil {
-		t.Errorf("Error while trying to set terminal state to false: %q", err)
-	}
-
-	if terminal := testState.IsTerminal(); terminal {
-		t.Errorf("Terminal state: %t after calling SetTerminal(false),"+
-			" want false", terminal)
-	}
-}
-
 func TestLazyDfaAnnotatedStateAnnotationsString(t *testing.T) {
 	var testState State = NewLazyDfaAnnotatedState(55, nil, nil)
 
@@ -328,16 +301,6 @@ func TestLazyDfaAnnotatedStateClone(t *testing.T) {
 	if testStateA.GetId() == testStateB.GetId() {
 		t.Errorf("Id modification affects two states: %d, %d",
 			testStateA.GetId(), testStateB.GetId())
-	}
-
-	if testStateA.IsTerminal() != testStateB.IsTerminal() {
-		t.Errorf("Clone results in different terminal states")
-	}
-	if err := testStateB.SetTerminal(true); err != nil {
-		t.Errorf("Error while trying to set terminal state: %q", err)
-	}
-	if testStateA.IsTerminal() == testStateB.IsTerminal() {
-		t.Errorf("Terminal prop modification affects two states")
 	}
 
 	if err := testStateA.AddAnnotation(1); err != nil {

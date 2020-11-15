@@ -37,8 +37,6 @@ type StateId int
 type State interface {
 	GetId() StateId
 	SetId(StateId) error
-	IsTerminal() bool
-	SetTerminal(bool) error
 	AddAnnotation(interface{}) error
 	RemoveAnnotation(interface{}) error
 	GetAnnotations() ([]interface{}, error)
@@ -57,7 +55,6 @@ type State interface {
 // information.
 type LazyDfaAnnotatedState struct {
 	Id          StateId
-	Terminal    bool
 	Edges       map[interface{}]State
 	Encoding    codec.Handle
 	HashFunc    hash.Hash32
@@ -83,15 +80,6 @@ func (s *LazyDfaAnnotatedState) GetId() StateId {
 
 func (s *LazyDfaAnnotatedState) SetId(id StateId) error {
 	s.Id = id
-	return nil
-}
-
-func (s *LazyDfaAnnotatedState) IsTerminal() bool {
-	return s.Terminal
-}
-
-func (s *LazyDfaAnnotatedState) SetTerminal(terminal bool) error {
-	s.Terminal = terminal
 	return nil
 }
 
